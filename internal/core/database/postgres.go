@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/url"
 	"time"
 
@@ -15,7 +16,7 @@ import (
 	"new_project/internal/core/config"
 )
 
-// NewPostgresDB creates and configures a new PostgreSQL connection using Bun ORM.
+// NewPostgresDB creates and configures a new PostgreSQL connection with retry backoff.
 func NewPostgresDB(cfg config.DatabaseConfig) (*bun.DB, error) {
 	safePassword := url.QueryEscape(cfg.Password)
 
@@ -35,20 +36,28 @@ func NewPostgresDB(cfg config.DatabaseConfig) (*bun.DB, error) {
 	// Initialize Bun database client
 	db := bun.NewDB(sqldb, pgdialect.New())
 
-	// Add query logging hook for debugging
-	// It prints all executed SQL queries to the terminal beautifully
+	// Logging hook for development
 	db.AddQueryHook(bundebug.NewQueryHook(
 		bundebug.WithVerbose(true),
 		bundebug.FromEnv("BUNDEBUG"),
 	))
 
-	// Verify that the connection is actually established
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	// Robust Retry Connection Loop (Waiting for DB container to warm up)
+	var pingErr error
+	maxAttempts := 15
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		pingErr = db.PingContext(ctx)
+		cancel()
 
-	if err := db.PingContext(ctx); err != nil {
-		return nil, fmt.Errorf("failed to ping postgres database: %w", err)
+		if pingErr == nil {
+			log.Println("🐘 PostgreSQL is ready and accepting connections!")
+			return db, nil
+		}
+
+		log.Printf("⏳ Waiting for PostgreSQL to be ready... (attempt %d/%d)", attempt, maxAttempts)
+		time.Sleep(2 * time.Second)
 	}
 
-	return db, nil
+	return nil, fmt.Errorf("failed to connect to postgres after %d attempts: %w", maxAttempts, pingErr)
 }
