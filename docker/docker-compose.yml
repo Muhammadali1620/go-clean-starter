@@ -1,0 +1,103 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: new_project_api
+    container_name: new_project_api
+    command: ["./new_project_app", "-mode=http"]
+    env_file:
+      - ./../env/.env
+    ports:
+      - "8080:8080"
+    networks:
+      - shared_network
+    volumes:
+      - ./../uploads:/app/uploads
+      - ./../firebase-adminsdk.json:/app/firebase-adminsdk.json
+    depends_on:
+      - postgres-db
+      - redis-db
+    restart: unless-stopped
+
+  bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: new_project_bot
+    container_name: app_bot
+    command: ["./new_project_app", "-mode=bot"]
+    env_file:
+      - ./../env/.env
+    networks:
+      - shared_network
+    depends_on:
+      - postgres-db
+      - redis-db
+    restart: unless-stopped
+
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: new_project_db
+    env_file:
+      - ./../env/.env
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./.volumes/pg_data:/var/lib/postgresql/data
+    networks:
+      - shared_network
+    restart: unless-stopped
+
+  redis-db:
+    image: redis:7-alpine
+    container_name: new_project_redis
+    networks:
+      - shared_network
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./.volumes/redis:/data
+    command: redis-server --save 60 1 --loglevel warning
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: new_project_worker
+    container_name: new_project_worker
+    command: ["./new_project_app", "-mode=task-worker"]
+    env_file:
+      - ./../env/.env
+    networks:
+      - shared_network
+    volumes:
+      - ./../uploads:/app/uploads
+      - ./../firebase-adminsdk.json:/app/firebase-adminsdk.json
+    depends_on:
+      - redis-db
+      - postgres-db
+    restart: unless-stopped
+
+  scheduler:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: new_project_scheduler
+    container_name: new_project_scheduler
+    command: ["./new_project_app", "-mode=scheduler"]
+    env_file:
+      - ./../env/.env
+    networks:
+      - shared_network
+    depends_on:
+      - redis-db
+    volumes:
+      - ./../uploads:/app/uploads
+      - ./../firebase-adminsdk.json:/app/firebase-adminsdk.json
+    restart: unless-stopped
+
+networks:
+  shared_network:
+    driver: bridge

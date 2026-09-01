@@ -1,0 +1,155 @@
+basePath: /
+definitions:
+  dto.MediaUploadResponse:
+    properties:
+      url:
+        type: string
+    type: object
+  models.AppError:
+    properties:
+      code:
+        allOf:
+        - $ref: '#/definitions/models.ErrorCode'
+        description: Strongly typed code for client i18n
+      err:
+        description: Underlying wrapped error
+      message:
+        description: Human-readable message in English
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/models.ErrorType'
+        description: Maps to HTTP status code
+    type: object
+  models.ErrorCode:
+    enum:
+    - NOT_FOUND
+    - ALREADY_EXISTS
+    - VALIDATION_FAILED
+    - UNAUTHORIZED
+    - FORBIDDEN
+    - TOO_MANY_REQUESTS
+    - INTERNAL_ERROR
+    - INVALID_CREDENTIALS
+    - ACCOUNT_BLOCKED
+    - INVALID_DATE_RANGE
+    - INVALID_INPUT
+    - CONFLICT
+    - FOREIGN_KEY_VIOLATION
+    type: string
+    x-enum-varnames:
+    - ErrCodeNotFound
+    - ErrCodeAlreadyExists
+    - ErrCodeValidationFailed
+    - ErrCodeUnauthorized
+    - ErrCodeForbidden
+    - ErrCodeTooManyRequests
+    - ErrCodeInternalError
+    - ErrCodeInvalidCredentials
+    - ErrCodeAccountBlocked
+    - ErrCodeInvalidDateRange
+    - ErrCodeInvalidInput
+    - ErrCodeConflict
+    - ErrCodeForeignKeyViolation
+  models.ErrorType:
+    enum:
+    - NOT_FOUND
+    - CONFLICT
+    - VALIDATION
+    - UNAUTHORIZED
+    - FORBIDDEN
+    - TOO_MANY_REQUESTS
+    - INTERNAL
+    type: string
+    x-enum-comments:
+      ErrorTypeConflict: "409"
+      ErrorTypeForbidden: "403"
+      ErrorTypeInternal: "500"
+      ErrorTypeNotFound: "404"
+      ErrorTypeTooManyRequests: "429"
+      ErrorTypeUnauthorized: "401"
+      ErrorTypeValidation: "400"
+    x-enum-descriptions:
+    - "404"
+    - "409"
+    - "400"
+    - "401"
+    - "403"
+    - "429"
+    - "500"
+    x-enum-varnames:
+    - ErrorTypeNotFound
+    - ErrorTypeConflict
+    - ErrorTypeValidation
+    - ErrorTypeUnauthorized
+    - ErrorTypeForbidden
+    - ErrorTypeTooManyRequests
+    - ErrorTypeInternal
+  new_project_internal_dto.BaseResponse-dto_MediaUploadResponse:
+    properties:
+      code:
+        type: string
+      data:
+        $ref: '#/definitions/dto.MediaUploadResponse'
+      message:
+        type: string
+      success:
+        type: boolean
+    type: object
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: Universal Backend API & Telegram Bot Server
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: NewProject API & Telegram Bot
+  version: "1.0"
+paths:
+  /api/v1/media/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload a file to the server
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Folder to upload to
+        in: formData
+        name: folder
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/new_project_internal_dto.BaseResponse-dto_MediaUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.AppError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.AppError'
+      security:
+      - BearerAuth: []
+      summary: Upload a file
+      tags:
+      - Media
+securityDefinitions:
+  BasicAuth:
+    type: basic
+  BearerAuth:
+    description: Enter your JWT token in the format "Bearer <token>"
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
