@@ -17,8 +17,8 @@ var validIdentRegex = regexp.MustCompile(`^[a-zA-Z0-9_\.]+(?:->>'?[a-zA-Z0-9_]+'
 type BaseRepository[T any] interface {
 	Create(ctx context.Context, entity *T) error
 	Update(ctx context.Context, entity *T) error
-	Delete(ctx context.Context, id int64) error
-	DeleteBy(ctx context.Context, field string, value any) error
+	Delete(ctx context.Context, id int64, updatedBy ...int64) error
+	DeleteBy(ctx context.Context, field string, value any, updatedBy ...int64) error
 	FindByID(ctx context.Context, id int64, relations ...string) (*T, error)
 	FindOneBy(ctx context.Context, field string, value any, relations ...string) (*T, error)
 	FindAll(ctx context.Context, opts dto.QueryOptions) ([]T, int, error)
@@ -54,16 +54,45 @@ func (r *baseRepository[T]) Update(ctx context.Context, entity *T) error {
 	return database.MapDBError(err)
 }
 
-func (r *baseRepository[T]) Delete(ctx context.Context, id int64) error {
-	_, err := r.Conn(ctx).NewDelete().Model((*T)(nil)).Where("?TableAlias.id = ?", id).Exec(ctx)
+// Delete soft-deletes a record and atomically sets updated_by if provided (in 1 single SQL query).
+func (r *baseRepository[T]) Delete(ctx context.Context, id int64, updatedBy ...int64) error {
+	if len(updatedBy) > 0 && updatedBy[0] > 0 {
+		_, err := r.Conn(ctx).NewUpdate().
+			Model((*T)(nil)).
+			Set("deleted_at = CURRENT_TIMESTAMP").
+			Set("updated_by = ?", updatedBy[0]).
+			Where("?TableAlias.id = ? AND ?TableAlias.deleted_at IS NULL", id).
+			Exec(ctx)
+		return database.MapDBError(err)
+	}
+
+	_, err := r.Conn(ctx).NewDelete().
+		Model((*T)(nil)).
+		Where("?TableAlias.id = ?", id).
+		Exec(ctx)
 	return database.MapDBError(err)
 }
 
-func (r *baseRepository[T]) DeleteBy(ctx context.Context, field string, value any) error {
+// DeleteBy soft-deletes records matching a field and atomically sets updated_by if provided.
+func (r *baseRepository[T]) DeleteBy(ctx context.Context, field string, value any, updatedBy ...int64) error {
 	if !validIdentRegex.MatchString(field) {
 		return nil
 	}
-	_, err := r.Conn(ctx).NewDelete().Model((*T)(nil)).Where("?TableAlias.? = ?", bun.Ident(field), value).Exec(ctx)
+
+	if len(updatedBy) > 0 && updatedBy[0] > 0 {
+		_, err := r.Conn(ctx).NewUpdate().
+			Model((*T)(nil)).
+			Set("deleted_at = CURRENT_TIMESTAMP").
+			Set("updated_by = ?", updatedBy[0]).
+			Where("?TableAlias.? = ? AND ?TableAlias.deleted_at IS NULL", bun.Ident(field), value).
+			Exec(ctx)
+		return database.MapDBError(err)
+	}
+
+	_, err := r.Conn(ctx).NewDelete().
+		Model((*T)(nil)).
+		Where("?TableAlias.? = ?", bun.Ident(field), value).
+		Exec(ctx)
 	return database.MapDBError(err)
 }
 
