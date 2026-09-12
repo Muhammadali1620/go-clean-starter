@@ -10,6 +10,7 @@ import (
 	"new_project/internal/core/config"
 	"new_project/internal/core/container"
 	"new_project/internal/core/database"
+	"new_project/internal/core/server"
 )
 
 type App struct {
@@ -47,8 +48,8 @@ func Bootstrap() *App {
 	}
 
 	// 4. Register Telegram Bot (if token exists)
-	if appContainer.BotService != nil && appContainer.BotHandlers.Start != nil {
-		appContainer.BotService.RegisterAllRoutes(appContainer.BotHandlers.Start)
+	if appContainer.BotService != nil {
+		server.SetupBotRoutes(appContainer)
 	}
 
 	return &App{
