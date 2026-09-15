@@ -2,9 +2,11 @@ package server
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/shopspring/decimal"
 
 	"new_project/internal/models"
 )
@@ -14,7 +16,17 @@ type CustomValidator struct {
 }
 
 func NewCustomValidator() *CustomValidator {
-	return &CustomValidator{validator: validator.New()}
+	v := validator.New()
+
+	v.RegisterCustomTypeFunc(func(field reflect.Value) interface{} {
+		if val, ok := field.Interface().(decimal.Decimal); ok {
+			f, _ := val.Float64()
+			return f
+		}
+		return nil
+	}, decimal.Decimal{})
+
+	return &CustomValidator{validator: v}
 }
 
 func (cv *CustomValidator) Validate(i interface{}) error {
