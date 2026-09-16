@@ -1,15 +1,9 @@
 package dto
 
-// MultiLang represents standard multilingual text in 3 supported languages.
-type MultiLang struct {
-	Uz string `json:"uz" validate:"required,min=1,max=255"`
-	Ru string `json:"ru" validate:"required,min=1,max=255"`
-	En string `json:"en,omitempty" validate:"omitempty,max=255"`
-}
+import "new_project/internal/models"
 
-// MultiLangText represents longer multilingual descriptions.
-type MultiLangText struct {
-	Uz string `json:"uz" validate:"required,min=1"`
-	Ru string `json:"ru" validate:"required,min=1"`
-	En string `json:"en,omitempty"`
-}
+// MultiLang aliases the domain model MultiLang for transport layers.
+type MultiLang = models.MultiLang
+
+// MultiLangText aliases the domain model MultiLangText for transport layers.
+type MultiLangText = models.MultiLangText
