@@ -191,24 +191,49 @@ func BuildQueryOptions(c echo.Context, baseOpts dto.QueryOptions, filterTypes ma
 		}
 	}
 
-	// 3. Universal Date Range (?from_date=... & ?to_date=...)
-	fromDate := c.QueryParam("from_date")
-	toDate := c.QueryParam("to_date")
-	dateField := c.QueryParam("date_field")
-	if dateField == "" {
-		dateField = "created_at"
-	}
-
-	if fromDate != "" || toDate != "" {
-		from, to, err := ParseDateRangeUTC(fromDate, toDate)
-		if err == nil {
-			baseOpts.DateRanges = append(baseOpts.DateRanges, dto.DateRangeFilter{
-				Field: dateField,
-				From:  from,
-				To:    to,
-			})
-		}
-	}
-
 	return baseOpts
+}
+
+// ApplyDateRange applies date range filter to the query options.
+func ApplyDateRange(c echo.Context, opts *dto.QueryOptions, fieldName, fromParam, toParam string) error {
+	fromStr := strings.TrimSpace(c.QueryParam(fromParam))
+	toStr := strings.TrimSpace(c.QueryParam(toParam))
+
+	if fromStr == "" && toStr == "" {
+		return nil
+	}
+
+	from, to, err := ParseDateRangeUTC(fromStr, toStr)
+	if err != nil {
+		return err
+	}
+
+	opts.DateRanges = append(opts.DateRanges, dto.DateRangeFilter{
+		Field: fieldName,
+		From:  from,
+		To:    to,
+	})
+	return nil
+}
+
+// ApplyDateTimeRange applies date time range filter to the query options.
+func ApplyDateTimeRange(c echo.Context, opts *dto.QueryOptions, fieldName, fromParam, toParam string) error {
+	fromStr := strings.TrimSpace(c.QueryParam(fromParam))
+	toStr := strings.TrimSpace(c.QueryParam(toParam))
+
+	if fromStr == "" && toStr == "" {
+		return nil
+	}
+
+	from, to, err := ParseDateTimeRangeUTC(fromStr, toStr)
+	if err != nil {
+		return err
+	}
+
+	opts.DateRanges = append(opts.DateRanges, dto.DateRangeFilter{
+		Field: fieldName,
+		From:  from,
+		To:    to,
+	})
+	return nil
 }
