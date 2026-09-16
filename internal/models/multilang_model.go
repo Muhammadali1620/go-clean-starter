@@ -11,7 +11,7 @@ const (
 // MultiLang represents standard multilingual text in 3 supported languages.
 type MultiLang struct {
 	Uz string `json:"uz" validate:"required,min=1,max=255"`
-	Ru string `json:"ru,omitempty" validate:"required,omitempty,max=255"`
+	Ru string `json:"ru,omitempty" validate:"omitempty,max=255"`
 	En string `json:"en,omitempty" validate:"omitempty,max=255"`
 }
 
@@ -65,7 +65,7 @@ func MultiLangFromMap(m map[string]string) *MultiLang {
 // MultiLangText represents longer multilingual descriptions.
 type MultiLangText struct {
 	Uz string `json:"uz" validate:"required,min=1,max=2048"`
-	Ru string `json:"ru,omitempty" validate:"required,omitempty,max=2048"`
+	Ru string `json:"ru,omitempty" validate:"omitempty,max=2048"`
 	En string `json:"en,omitempty" validate:"omitempty,max=2048"`
 }
 
